@@ -1,5 +1,11 @@
-/*jshint browser:true,bitwise:false */
-/*global Simplex*/
+/*
+ * Dust And Rain - js13kgames 2014
+ * @Armen138
+ */
+
+/*jshint browser:true,bitwise:false,node:true */
+/*global Simplex,console*/
+
 'use strict';
 var canvas = document.getElementsByTagName('canvas')[0];
 var simplex = new Simplex();
@@ -169,15 +175,17 @@ var World = function() {
         if(z> 2) {
             return;
         }
+        if((viewPort.width / (tileSize * z) | 0 + 1) >= size.width ||
+            (viewPort.height / (tileSize * z) | 0 + 1) >= size.height) {
+               return;
+        }
         zoom = z;
         tilesPerScreen = {
             x: (viewPort.width / (tileSize * zoom) | 0) + 1,
             y: (viewPort.height / (tileSize * zoom) | 0) + 1
         };
-        if(offset.x > size.width - tilesPerScreen.x - 1) {
-            offset.x = size.width - tilesPerScreen.x - 1;
-            console.log(offset);
-        }
+        console.log(offset);
+        console.log(tilesPerScreen);
     };
     document.addEventListener('mousewheel', function(e) {
         if(e.wheelDelta < 0) {
@@ -192,6 +200,14 @@ var World = function() {
             tilesPerScreen.Y > size.height) {
             setZoom(zoom * 2);
         }
+        //if(offset.x > size.width - tilesPerScreen.x) {
+            //offset.x = size.width - tilesPerScreen.x;
+        //}
+        //if(offset.y > size.width - tilesPerScreen.y) {
+            //offset.y = size.width - tilesPerScreen.y;
+        //}
+        console.log(offset);
+        console.log(tilesPerScreen);
     });
     document.addEventListener('mousedown', function(e) {
         console.log(e.which);
@@ -282,7 +298,7 @@ var World = function() {
             }
         }
 
-        if(x < size.width && y > 0) {
+        if(x < size.width - 1 && y > 0) {
             if(map[x][y] !== map[x + 1][y] &&
                map[x][y] !== map[x][y -1]) {
                 b = map[x][y - 1];
@@ -293,7 +309,7 @@ var World = function() {
                 return tiles[type].ne;
             }
         }
-        if(x < size.width && y < size.height) {
+        if(x < size.width - 1 && y < size.height) {
             if(map[x][y] !== map[x + 1][y] &&
                map[x][y] !== map[x][y  + 1]) {
                 b = map[x][y + 1];
@@ -304,7 +320,7 @@ var World = function() {
                 return tiles[type].se;
             }
         }
-        if(x > 0 && y < size.height) {
+        if(x > 0 && y < size.height - 1) {
             if(map[x][y] !== map[x - 1][y] &&
                map[x][y] !== map[x][y  + 1]) {
                 b = map[x][y + 1];
@@ -326,7 +342,7 @@ var World = function() {
                 return tiles[type + 'Inverse'].se;
             }
         }
-        if(x < size.width && y > 0) {
+        if(x < size.width - 1 && y > 0) {
             if(map[x][y] !== map[x + 1][y - 1] &&
                map[x][y] === map[x + 1][y] &&
                map[x][y] === map[x][y - 1]) {
@@ -337,7 +353,7 @@ var World = function() {
                 return tiles[type + 'Inverse'].sw;
             }
         }
-        if(x > 0 && y < size.height) {
+        if(x > 0 && y < size.height - 1) {
             if(map[x][y] !== map[x - 1][y + 1] &&
                map[x][y] === map[x - 1][y] &&
                map[x][y] === map[x][y + 1]) {
@@ -348,7 +364,7 @@ var World = function() {
                 return tiles[type + 'Inverse'].ne;
             }
         }
-        if(x < size.width && y < size.height) {
+        if(x < size.width - 1 && y < size.height - 1) {
             if(map[x][y] !== map[x + 1][y + 1] &&
                map[x][y] === map[x + 1][y] &&
                map[x][y] === map[x][y + 1]) {
@@ -368,7 +384,7 @@ var World = function() {
                 return tiles[type].w;
             }
         }
-        if(x < size.width) {
+        if(x < size.width - 1) {
             if(map[x][y] !== map[x + 1][y]) {
                 b = map[x + 1][y];
                 if(type === 'rock' && b === 3) {
@@ -386,7 +402,7 @@ var World = function() {
                 return tiles[type].n;
             }
         }
-        if(y < size.height) {
+        if(y < size.height - 1) {
             if(map[x][y] !== map[x][y + 1]) {
                 b = map[x][y + 1];
                 if(type === 'rock' && b === 3) {
