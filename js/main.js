@@ -40,6 +40,37 @@ var mapTile = function(x, y) {
     return parseInt((simplex.noise(x / res, y / res) + 1) / 2 * levels, 10);
 };
 
+var MessageBox = function() {
+    var messages = [];
+    var messageBox = {};
+    var level = {
+        'info': 'yellow',
+        'default': 'black',
+        'error': 'red',
+        'warning': 'orange',
+        'success': 'green'
+    };
+    messageBox.draw = function() {
+        ctx.fillStyle = 'black';
+        ctx.font = '14px Arial';
+        for(var i = 0; i < messages.length; i++) {
+            ctx.fillStyle = level[messages[i].type];
+            ctx.fillText(messages[i].msg, 10, 20 + i * 20);
+        }
+    };
+    messageBox.append = function(msg, type) {
+        messages.push({
+            msg: msg,
+            type: type || 'default'
+        });
+        if(messages.length > 10) {
+            messages.shift();
+        }
+    };
+    messageBox.append('init messagebox', 'success');
+    return messageBox;
+};
+
 var tiles = {
     water: {},
     rock: {},
@@ -448,8 +479,16 @@ var World = function() {
 };
 
 var Game = function() {
+    var messageBox = new MessageBox();
     var world = new World();
     var player = new Player();
+    var server = new Server();
+    server.on('msg', function(data) {
+        console.log('message from server');
+        console.log(data);
+        messageBox.append(data.data);
+    });
+
     var draw = function() {
         canvas.width = canvas.width;
     };
@@ -458,12 +497,44 @@ var Game = function() {
         draw();
         world.draw();
         player.draw();
+        messageBox.draw();
         window.requestAnimationFrame(loop);
     };
 
     return {
         loop: loop
     };
+};
+
+var Server = function() {
+    var server = {},
+        events = {},
+        ev = function(e, data) {
+            if(events[e]) {
+                for(var i = 0; i < events[e].length; i++) {
+                    events[e][i](data);
+                }
+            }
+        },
+        serverWorker = new Worker('js/server.js');
+    server.send = function(message) {
+        serverWorker.postMessage(message);
+    };
+    server.on = function(e, cb) {
+        if(!events[e]) {
+            events[e] = [];
+        }
+        events[e].push(cb);
+    };
+
+    serverWorker.onmessage = function(data) {
+        ev('msg', data.data);
+    };
+    serverWorker.postMessage({
+        type: 'info',
+        data: 'connection ready'
+    });
+    return server;
 };
 
 generateTransition('green', 'blue', 'brown', 'water');
