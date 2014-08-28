@@ -8,7 +8,7 @@
 
 'use strict';
 var canvas = document.getElementsByTagName('canvas')[0];
-var simplex = new Simplex();
+//var simplex = new Simplex();
 var viewPort = {
     width: window.innerWidth,
     height: window.innerHeight
@@ -34,11 +34,6 @@ var tilesPerScreen = {
 };
 var ctx = canvas.getContext('2d');
 
-var mapTile = function(x, y) {
-    var res = 25;
-    var levels = 4;
-    return parseInt((simplex.noise(x / res, y / res) + 1) / 2 * levels, 10);
-};
 
 var MessageBox = function() {
     var messages = [];
@@ -184,20 +179,20 @@ var Player = function() {
     return player;
 };
 
-var World = function() {
-    console.log(simplex);
+var World = function(map) {
+    //console.log(simplex);
     var world = {};
-    var map = [];
+    //var map = [];
     fog = [];
     var size = {
         width: 100,
         height: 100
     };
     for(var x = 0; x < size.width; x++) {
-        map[x] = [];
+        //map[x] = [];
         fog[x] = [];
         for(var y = 0; y < size.height; y++) {
-            map[x][y] = mapTile(x / 2 | 0, y / 2 | 0);
+            //map[x][y] = mapTile(x / 2 | 0, y / 2 | 0);
             fog[x][y] = 0;
         }
     }
@@ -480,30 +475,38 @@ var World = function() {
 
 var Game = function() {
     var messageBox = new MessageBox();
-    var world = new World();
-    var player = new Player();
     var server = new Server();
-    server.on('msg', function(data) {
-        console.log('message from server');
+    var game = {
+        loop: function() {
+            window.requestAnimationFrame(game.loop);
+        }
+    };
+
+    server.on('map', function(data) {
         console.log(data);
-        messageBox.append(data.data);
+
+        var world = new World(data);
+        var player = new Player();
+        server.on('msg', function(data) {
+            console.log('message from server');
+            console.log(data);
+            messageBox.append(data.data);
+        });
+
+        var draw = function() {
+            canvas.width = canvas.width;
+        };
+
+        game.loop = function() {
+            draw();
+            world.draw();
+            player.draw();
+            messageBox.draw();
+            window.requestAnimationFrame(game.loop);
+        };
     });
-
-    var draw = function() {
-        canvas.width = canvas.width;
-    };
-
-    var loop = function() {
-        draw();
-        world.draw();
-        player.draw();
-        messageBox.draw();
-        window.requestAnimationFrame(loop);
-    };
-
-    return {
-        loop: loop
-    };
+    server.send('map');
+    return game;
 };
 
 var Server = function() {
@@ -516,9 +519,12 @@ var Server = function() {
                 }
             }
         },
-        serverWorker = new Worker('js/server.js');
-    server.send = function(message) {
-        serverWorker.postMessage(message);
+        serverWorker = new Worker('server/server.min.js');
+    server.send = function(type, message) {
+        serverWorker.postMessage({
+            type: type || 'info',
+            data: message
+        });
     };
     server.on = function(e, cb) {
         if(!events[e]) {
@@ -529,6 +535,9 @@ var Server = function() {
 
     serverWorker.onmessage = function(data) {
         ev('msg', data.data);
+        if(data.data.type) {
+            ev(data.data.type, data.data.data);
+        }
     };
     serverWorker.postMessage({
         type: 'info',

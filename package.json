@@ -1,0 +1,18 @@
+{
+    "name": "DustAndRain",
+    "description": "js13kgames entry 2014",
+    "author": "Armen138",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:Armen138/DustAndRain.git"
+    },
+    "dependencies": {
+        "gulp": "*",
+        "gulp-concat": "*",
+        "gulp-uglify": "*",
+        "gulp-sourcemaps": "*",
+        "gulp-util": "*",
+        "gulp-zip": "*",
+        "del": "*"
+    }
+}
