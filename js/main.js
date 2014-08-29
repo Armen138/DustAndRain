@@ -8,11 +8,12 @@
 
 'use strict';
 var canvas = document.getElementsByTagName('canvas')[0];
-//var simplex = new Simplex();
+
 var viewPort = {
     width: window.innerWidth,
     height: window.innerHeight
 };
+
 canvas.width = viewPort.width;
 canvas.height = viewPort.height;
 var zoom = 1;
@@ -33,7 +34,6 @@ var tilesPerScreen = {
     y: viewPort.height / tileSize | 0 + 1
 };
 var ctx = canvas.getContext('2d');
-
 
 var MessageBox = function() {
     var messages = [];
@@ -148,19 +148,17 @@ var generateTransition = function(from, to, intermediate, type) {
 var Unit = function(x, y/*, type*/) {
     var unit = {};
     var fx, fy;
-    for(fx = x - 2; fx <= x + 2; fx++) {
-        for(fy = y - 2; fy <= y + 2; fy++) {
-            if(fog[fx][fy] === 0) {
-                fog[fx][fy] = 2;
+    var fogBox = function(r, v) {
+        for(fx = x - r; fx <= x + r; fx++) {
+            for(fy = y - r; fy <= y + r; fy++) {
+                if(fog[fx][fy] < v) {
+                    fog[fx][fy] = v;
+                }
             }
         }
-
-    }
-    for(fx = x - 1; fx <= x + 1; fx++) {
-        for(fy = y - 1; fy <= y + 1; fy++) {
-            fog[fx][fy] = 1;
-        }
-    }
+    };
+    fogBox(2, 1);
+    fogBox(1, 2);
     unit.draw = function() {
         ctx.fillStyle = 'yellow';
         ctx.fillRect((x - offset.x) * tileSize * zoom, (y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
@@ -180,19 +178,15 @@ var Player = function() {
 };
 
 var World = function(map) {
-    //console.log(simplex);
     var world = {};
-    //var map = [];
     fog = [];
     var size = {
         width: 100,
         height: 100
     };
     for(var x = 0; x < size.width; x++) {
-        //map[x] = [];
         fog[x] = [];
         for(var y = 0; y < size.height; y++) {
-            //map[x][y] = mapTile(x / 2 | 0, y / 2 | 0);
             fog[x][y] = 0;
         }
     }
@@ -215,7 +209,6 @@ var World = function(map) {
     };
     document.addEventListener('mousewheel', function(e) {
         if(e.wheelDelta < 0) {
-            //up
             console.log('wheel down');
             setZoom(zoom * 0.5);
         } else {
@@ -226,14 +219,6 @@ var World = function(map) {
             tilesPerScreen.Y > size.height) {
             setZoom(zoom * 2);
         }
-        //if(offset.x > size.width - tilesPerScreen.x) {
-            //offset.x = size.width - tilesPerScreen.x;
-        //}
-        //if(offset.y > size.width - tilesPerScreen.y) {
-            //offset.y = size.width - tilesPerScreen.y;
-        //}
-        console.log(offset);
-        console.log(tilesPerScreen);
     });
     document.addEventListener('mousedown', function(e) {
         console.log(e.which);
@@ -440,32 +425,16 @@ var World = function(map) {
         return tiles[type].c;
     };
     world.draw = function() {
-        //var colors = ['red', 'green', 'blue', 'gray'];
         for(var x = offset.x; x < tilesPerScreen.x + offset.x; x++) {
             for(var y = offset.y; y < tilesPerScreen.y + offset.y; y++) {
                 var tile = mapCorner(x, y);
-                //ctx.drawImage(tile, (x - offset.x) * tileSize, (y - offset.y) * tileSize);
                 ctx.drawImage(tile,
                     0, 0, tileSize, tileSize,
                     (x - offset.x) * (tileSize * zoom), (y - offset.y) * (tileSize * zoom),
                     tileSize * zoom, tileSize * zoom
                 );
-                //ctx.save();
-                //ctx.fillStyle = colors[map[x][y]];
-                //ctx.globalAlpha = 0.3;
-                //ctx.fillRect((x - offset.x) * tileSize, (y - offset.y) * tileSize, tileSize, tileSize);
-                //ctx.restore();
-
-                //ctx.strokeStyle = 'black';
-                //ctx.strokeRect((x - offset.x) * tileSize, (y - offset.y) * tileSize, tileSize, tileSize);
-                if(fog[x][y] === 0) {
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                    ctx.fillRect((x - offset.x) * tileSize * zoom, (y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
-                }
-                if(fog[x][y] === 2) {
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-                    ctx.fillRect((x - offset.x) * tileSize * zoom, (y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
-                }
+                ctx.fillStyle = 'rgba(0,0,0,' + ((1 - fog[x][y] * 0.5) * 0.75)+ ')';
+                ctx.fillRect((x - offset.x) * tileSize * zoom, (y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
             }
         }
     };
