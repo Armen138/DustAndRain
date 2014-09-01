@@ -182,11 +182,20 @@ var Player = function() {
 };
 
 var World = function(map) {
+    var selected = null;
+    var events = {};
     var world = {};
     fog = [];
     var size = {
         width: 100,
         height: 100
+    };
+    var ev = function(e, data) {
+        if(events[e]) {
+            for(var i = 0; i < events[e].length; i++) {
+                events[e][i](data);
+            }
+        }
     };
     for(var x = 0; x < size.width; x++) {
         fog[x] = [];
@@ -195,6 +204,13 @@ var World = function(map) {
         }
     }
     var drag = null;
+    var tilePosition = function(ip) {
+        var p = {
+            x: (ip.x / (tileSize * zoom) | 0) + offset.x,
+            y: (ip.y / (tileSize * zoom) | 0) + offset.y
+        };
+        return p;
+    };
     var setZoom = function(z) {
         if(z> 2) {
             return;
@@ -208,19 +224,16 @@ var World = function(map) {
             x: (viewPort.width / (tileSize * zoom) | 0) + 1,
             y: (viewPort.height / (tileSize * zoom) | 0) + 1
         };
-        console.log(offset);
-        console.log(tilesPerScreen);
+        //console.log(offset);
+        //console.log(tilesPerScreen);
     };
     document.addEventListener('mousewheel', function(e) {
-        var p = {
-            x: (e.clientX / (tileSize * zoom) | 0) + offset.x,
-            y: (e.clientY / (tileSize * zoom) | 0) + offset.y
-        };
+        var p = tilePosition({ x: e.clientX, y: e.clientY });
         if(e.wheelDelta < 0) {
-            console.log('wheel down');
+            //console.log('wheel down');
             setZoom(zoom * 0.5);
         } else {
-            console.log('wheel up');
+            //console.log('wheel up');
             setZoom(zoom * 2);
         }
         if(tilesPerScreen.x >  size.width ||
@@ -230,7 +243,7 @@ var World = function(map) {
         world.center(p.x, p.y);
     });
     document.addEventListener('mousedown', function(e) {
-        console.log(e.which);
+        //console.log(e.which);
         if(e.which === 3) {
             drag = {
                 X: e.clientX,
@@ -268,8 +281,13 @@ var World = function(map) {
     document.addEventListener('mouseup', function() {
         drag = null;
     });
+    document.addEventListener('click', function(e) {
+        var p = tilePosition({ x: e.clientX, y: e.clientY });
+        //console.log(p);
+        ev('action', p);
+    });
     document.addEventListener('keydown', function(e) {
-        console.log(e.which);
+        //console.log(e.which);
         switch(e.which) {
             case keys.right:
                 offset.x++;
@@ -448,6 +466,11 @@ var World = function(map) {
                 ctx.fillRect((x - offset.x) * tileSize * zoom, (y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
             }
         }
+        if(selected) {
+            ctx.strokeStyle = 'yellow';
+            ctx.strokeRect((selected.x - offset.x) * tileSize * zoom,
+                            (selected.y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
+        }
     };
     world.center = function(x, y) {
         var c = {
@@ -457,7 +480,16 @@ var World = function(map) {
         offset.x = x - c.x; //Math.min(Math.max(x - c.x, 0), size - tilesPerScreen.x);
         offset.y = y - c.y; //Math.min(Math.max(y - c.y, 0), size - tilesPerScreen.y);
     };
-    console.log(map);
+    world.on = function(ev, cb) {
+        if(!events[ev]) {
+            events[ev] = [];
+        }
+        events[ev].push(cb);
+    };
+    world.select = function(p) {
+        selected = p;
+    };
+    //console.log(map);
     return world;
 };
 
@@ -471,10 +503,13 @@ var Game = function() {
     };
 
     server.on('map', function(data) {
-        console.log(data);
+        //console.log(data);
 
         var world = new World(data);
         var player = new Player();
+        world.on('action', function(p) {
+            world.select(p);
+        });
         world.center(player.start.x, player.start.y);
         server.on('msg', function(data) {
             console.log('message from server');

@@ -57,6 +57,11 @@ gulp.task('verify', ['package'], function() {
     var out = (stat.size / 1024);
     var left = 13 - out;
     gutil.log("Size: ",gutil.colors.green('13k - '), gutil.colors.red(out.toFixed(2) + 'k ')," = ",gutil.colors.cyan(left.toFixed(2) + 'k'));
+
+    var readme = '' + fs.readFileSync('README.md');
+    readme = readme.replace(/zipped size: \*\*.*?\*\*/, 'zipped size: **' + out.toFixed(2) + 'kb**');
+    readme = readme.replace(/last build:  \*\*.*?\*\*/, 'last build:  **' + new Date() + '**');
+    fs.writeFileSync('README.md', readme);
     //console.log('13k - ' + out.toFixed(2) + 'k = ' + left.toFixed(2) + 'k');
 });
 gulp.task('default', ['verify']);
