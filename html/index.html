@@ -1,4 +1,40 @@
+<head>
+    template {
+        display: none;
+    }
+    .action {
+        position: absolute;
+        border: 1px solid black;
+        background-color: white;
+    }
+</head>
 <body oncontextmenu="return false;" style="margin:0">
     <canvas width=800 height=600></canvas>
+    <template>
+        <ul id='unit' class='action'>
+            <li>move</li>
+            <li>attack</li>
+            <li>fortify</li>
+        </ul>
+    </template>
+    <template>
+        <ul id='city' class='action'>
+            <li>upgrade palace</li>
+            <li>upgrade quarry</li>
+            <li>upgrade aquaduct</li>
+            <li>upgrade forge</li>
+            <li>upgrade mill</li>
+            <li>produce unit</li>
+        </ul>
+    </template>
+    <template>
+        <ul id='produce' class='action'>
+            <li>scout</li>
+            <li>soldier</li>
+            <li>mounted soldier</li>
+            <li>settler</li>
+        </ul>
+    </template>
 </body>
 <script src='js/client.min.js'></script>
+

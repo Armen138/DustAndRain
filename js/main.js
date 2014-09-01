@@ -145,12 +145,12 @@ var generateTransition = function(from, to, intermediate, type) {
     //document.body.appendChild(tc);
 };
 
-var Unit = function(x, y/*, type*/) {
+var Unit = function(p/*, type*/) {
     var unit = {};
     var fx, fy;
     var fogBox = function(r, v) {
-        for(fx = x - r; fx <= x + r; fx++) {
-            for(fy = y - r; fy <= y + r; fy++) {
+        for(fx = p.x - r; fx <= p.x + r; fx++) {
+            for(fy = p.y - r; fy <= p.y + r; fy++) {
                 if(fog[fx][fy] < v) {
                     fog[fx][fy] = v;
                 }
@@ -161,7 +161,7 @@ var Unit = function(x, y/*, type*/) {
     fogBox(1, 2);
     unit.draw = function() {
         ctx.fillStyle = 'yellow';
-        ctx.fillRect((x - offset.x) * tileSize * zoom, (y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
+        ctx.fillRect((p.x - offset.x) * tileSize * zoom, (p.y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
     };
     return unit;
 };
@@ -169,7 +169,7 @@ var Player = function() {
     var x = Math.random() * 100 | 0;
     var y = Math.random() * 100 | 0;
     var type = 'settler';
-    var unit = new Unit(x, y, type);
+    var unit = new Unit({x: x, y: y}, type);
     var player = {};
     player.draw = function() {
         unit.draw();
