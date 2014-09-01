@@ -174,6 +174,10 @@ var Player = function() {
     player.draw = function() {
         unit.draw();
     };
+    player.start = {
+        x: x,
+        y: y
+    };
     return player;
 };
 
@@ -208,6 +212,10 @@ var World = function(map) {
         console.log(tilesPerScreen);
     };
     document.addEventListener('mousewheel', function(e) {
+        var p = {
+            x: (e.clientX / (tileSize * zoom) | 0) + offset.x,
+            y: (e.clientY / (tileSize * zoom) | 0) + offset.y
+        };
         if(e.wheelDelta < 0) {
             console.log('wheel down');
             setZoom(zoom * 0.5);
@@ -216,9 +224,10 @@ var World = function(map) {
             setZoom(zoom * 2);
         }
         if(tilesPerScreen.x >  size.width ||
-            tilesPerScreen.Y > size.height) {
+            tilesPerScreen.y > size.height) {
             setZoom(zoom * 2);
         }
+        world.center(p.x, p.y);
     });
     document.addEventListener('mousedown', function(e) {
         console.log(e.which);
@@ -425,6 +434,8 @@ var World = function(map) {
         return tiles[type].c;
     };
     world.draw = function() {
+        offset.x = Math.min(Math.max(offset.x, 0), size.width - tilesPerScreen.x);
+        offset.y = Math.min(Math.max(offset.y, 0), size.height - tilesPerScreen.y);
         for(var x = offset.x; x < tilesPerScreen.x + offset.x; x++) {
             for(var y = offset.y; y < tilesPerScreen.y + offset.y; y++) {
                 var tile = mapCorner(x, y);
@@ -437,6 +448,14 @@ var World = function(map) {
                 ctx.fillRect((x - offset.x) * tileSize * zoom, (y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
             }
         }
+    };
+    world.center = function(x, y) {
+        var c = {
+            x: tilesPerScreen.x / 2 | 0,
+            y: tilesPerScreen.y / 2 | 0
+        };
+        offset.x = x - c.x; //Math.min(Math.max(x - c.x, 0), size - tilesPerScreen.x);
+        offset.y = y - c.y; //Math.min(Math.max(y - c.y, 0), size - tilesPerScreen.y);
     };
     console.log(map);
     return world;
@@ -456,6 +475,7 @@ var Game = function() {
 
         var world = new World(data);
         var player = new Player();
+        world.center(player.start.x, player.start.y);
         server.on('msg', function(data) {
             console.log('message from server');
             console.log(data);
