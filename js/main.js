@@ -66,6 +66,38 @@ var MessageBox = function() {
     return messageBox;
 };
 
+var Menu = function() {
+    var elements = document.getElementsByTagName('template');
+    var menu = {
+        open: function(id, tile) {
+            var p = screenPosition(tile);
+            var m = menu[id].querySelector('.action');
+            console.log(menu[id]);
+            console.log(m);
+            m.style.display = 'block';
+            m.style.left = p.x;
+            m.style.top = p.y;
+        },
+        close: function(id) {
+            if(id) {
+                menu[id].querySelector('.action').style.display = 'none';
+            } else {
+                var e = document.querySelectorAll('.action');
+                for(var i = 0; i < e.length; i++) {
+                    elements[i].style.display = 'none';
+                }
+            }
+        }
+    };
+    for(var i = 0; i < elements.length; i++) {
+        var id = elements[i].getAttribute('id');
+        menu[id] = document.importNode(elements[i].content, true);
+        console.log(menu[id]);
+        menu[id].querySelector('.action').style.display = 'none';
+        document.body.appendChild(menu[id]);
+    }
+    return menu;
+};
 var tiles = {
     water: {},
     rock: {},
@@ -181,6 +213,20 @@ var Player = function() {
     return player;
 };
 
+    var screenPosition = function(ip) {
+        var p = {
+            x: (ip.x * tileSize * zoom) - offset.x,
+            y: (ip.y * tileSize * zoom) - offset.y
+        };
+        return p;
+    };
+    var tilePosition = function(ip) {
+        var p = {
+            x: (ip.x / (tileSize * zoom) | 0) + offset.x,
+            y: (ip.y / (tileSize * zoom) | 0) + offset.y
+        };
+        return p;
+    };
 var World = function(map) {
     var selected = null;
     var events = {};
@@ -204,13 +250,6 @@ var World = function(map) {
         }
     }
     var drag = null;
-    var tilePosition = function(ip) {
-        var p = {
-            x: (ip.x / (tileSize * zoom) | 0) + offset.x,
-            y: (ip.y / (tileSize * zoom) | 0) + offset.y
-        };
-        return p;
-    };
     var setZoom = function(z) {
         if(z> 2) {
             return;
@@ -496,6 +535,7 @@ var World = function(map) {
 var Game = function() {
     var messageBox = new MessageBox();
     var server = new Server();
+    var menu = new Menu();
     var game = {
         loop: function() {
             window.requestAnimationFrame(game.loop);
@@ -509,6 +549,7 @@ var Game = function() {
         var player = new Player();
         world.on('action', function(p) {
             world.select(p);
+            menu.open('unit', p);
         });
         world.center(player.start.x, player.start.y);
         server.on('msg', function(data) {

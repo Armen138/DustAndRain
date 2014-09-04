@@ -1,24 +1,23 @@
 <head>
-    template {
-        display: none;
-    }
+    <style>
     .action {
         position: absolute;
         border: 1px solid black;
         background-color: white;
     }
+    </style>
 </head>
 <body oncontextmenu="return false;" style="margin:0">
     <canvas width=800 height=600></canvas>
-    <template>
-        <ul id='unit' class='action'>
+    <template id='unit'>
+        <ul class='action'>
             <li>move</li>
             <li>attack</li>
             <li>fortify</li>
         </ul>
     </template>
-    <template>
-        <ul id='city' class='action'>
+    <template id='city'>
+        <ul class='action'>
             <li>upgrade palace</li>
             <li>upgrade quarry</li>
             <li>upgrade aquaduct</li>
@@ -27,8 +26,8 @@
             <li>produce unit</li>
         </ul>
     </template>
-    <template>
-        <ul id='produce' class='action'>
+    <template id='produce'>
+        <ul class='action'>
             <li>scout</li>
             <li>soldier</li>
             <li>mounted soldier</li>
