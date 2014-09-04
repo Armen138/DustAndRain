@@ -18,6 +18,7 @@ canvas.width = viewPort.width;
 canvas.height = viewPort.height;
 var zoom = 1;
 var fog;
+var entities;
 var keys = {
     up: 38,
     down: 40,
@@ -67,22 +68,20 @@ var MessageBox = function() {
 };
 
 var Menu = function() {
-    var elements = document.getElementsByTagName('template');
+    var elements = document.querySelectorAll('.template');
     var menu = {
         open: function(id, tile) {
             var p = screenPosition(tile);
-            var m = menu[id].querySelector('.action');
-            console.log(menu[id]);
-            console.log(m);
+            var m = menu[id];
             m.style.display = 'block';
-            m.style.left = p.x;
-            m.style.top = p.y;
+            m.style.left = p.x + tileSize / 2 * zoom;
+            m.style.top = p.y + tileSize / 2 * zoom;
         },
         close: function(id) {
             if(id) {
-                menu[id].querySelector('.action').style.display = 'none';
+                menu[id].style.display = 'none';
             } else {
-                var e = document.querySelectorAll('.action');
+                var e = menu[id];
                 for(var i = 0; i < e.length; i++) {
                     elements[i].style.display = 'none';
                 }
@@ -91,9 +90,8 @@ var Menu = function() {
     };
     for(var i = 0; i < elements.length; i++) {
         var id = elements[i].getAttribute('id');
-        menu[id] = document.importNode(elements[i].content, true);
-        console.log(menu[id]);
-        menu[id].querySelector('.action').style.display = 'none';
+        menu[id] = elements[i];//document.importNode(elements[i].content, true);
+        menu[id].style.display = 'none';
         document.body.appendChild(menu[id]);
     }
     return menu;
@@ -215,8 +213,8 @@ var Player = function() {
 
     var screenPosition = function(ip) {
         var p = {
-            x: (ip.x * tileSize * zoom) - offset.x,
-            y: (ip.y * tileSize * zoom) - offset.y
+            x: (ip.x - offset.x) * tileSize * zoom,
+            y: (ip.y - offset.y) * tileSize * zoom
         };
         return p;
     };
@@ -232,6 +230,7 @@ var World = function(map) {
     var events = {};
     var world = {};
     fog = [];
+    entities = [];
     var size = {
         width: 100,
         height: 100
@@ -245,6 +244,7 @@ var World = function(map) {
     };
     for(var x = 0; x < size.width; x++) {
         fog[x] = [];
+        entities[x] = [];
         for(var y = 0; y < size.height; y++) {
             fog[x][y] = 0;
         }
@@ -263,16 +263,12 @@ var World = function(map) {
             x: (viewPort.width / (tileSize * zoom) | 0) + 1,
             y: (viewPort.height / (tileSize * zoom) | 0) + 1
         };
-        //console.log(offset);
-        //console.log(tilesPerScreen);
     };
-    document.addEventListener('mousewheel', function(e) {
+    canvas.addEventListener('mousewheel', function(e) {
         var p = tilePosition({ x: e.clientX, y: e.clientY });
         if(e.wheelDelta < 0) {
-            //console.log('wheel down');
             setZoom(zoom * 0.5);
         } else {
-            //console.log('wheel up');
             setZoom(zoom * 2);
         }
         if(tilesPerScreen.x >  size.width ||
@@ -281,8 +277,7 @@ var World = function(map) {
         }
         world.center(p.x, p.y);
     });
-    document.addEventListener('mousedown', function(e) {
-        //console.log(e.which);
+    canvas.addEventListener('mousedown', function(e) {
         if(e.which === 3) {
             drag = {
                 X: e.clientX,
@@ -293,7 +288,7 @@ var World = function(map) {
         }
     });
 
-    document.addEventListener('mousemove', function(e) {
+    canvas.addEventListener('mousemove', function(e) {
         if(!drag) {
             return;
         }
@@ -317,16 +312,35 @@ var World = function(map) {
         }
     });
 
-    document.addEventListener('mouseup', function() {
+    canvas.addEventListener('mouseup', function(e) {
+        console.log(e.which);
+        var tileDif;
+        if(drag) {
+            tileDif = {
+                X: (drag.X - e.clientX) / (tileSize * zoom) | 0,
+                Y: (drag.Y - e.clientY) / (tileSize * zoom) | 0
+            };
+        }
+        if(e.which === 3 && (!drag || (tileDif.X === 0 && tileDif.Y === 0))) {
+            var p = tilePosition({ x: e.clientX, y: e.clientY });
+            if(entities[p.x][p.y]) {
+                p = entities[p.x][p.y];
+            }
+            ev('action', p);
+        }
         drag = null;
     });
-    document.addEventListener('click', function(e) {
-        var p = tilePosition({ x: e.clientX, y: e.clientY });
-        //console.log(p);
-        ev('action', p);
-    });
-    document.addEventListener('keydown', function(e) {
+    //canvas.addEventListener('click', function(e) {
+        //var p = tilePosition({ x: e.clientX, y: e.clientY });
+        //if(entities[p.x][p.y]) {
+            //p = entities[p.x][p.y];
+        //}
         //console.log(e.which);
+        //if(e.which === 3) {
+            //ev('action', p);
+        //}
+    //});
+    canvas.addEventListener('keydown', function(e) {
         switch(e.which) {
             case keys.right:
                 offset.x++;
@@ -528,7 +542,6 @@ var World = function(map) {
     world.select = function(p) {
         selected = p;
     };
-    //console.log(map);
     return world;
 };
 
@@ -543,7 +556,6 @@ var Game = function() {
     };
 
     server.on('map', function(data) {
-        //console.log(data);
 
         var world = new World(data);
         var player = new Player();
@@ -571,6 +583,7 @@ var Game = function() {
         };
     });
     server.send('map');
+    menu.open('login', { x: 0, y: 0});
     return game;
 };
 

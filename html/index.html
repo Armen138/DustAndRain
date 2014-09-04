@@ -1,22 +1,44 @@
 <head>
     <style>
     .action {
+        font-family: Arial;
+        font-size: 14px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        width: 125px;
+    }
+    .action>li {
+        padding: 4px;
+        cursor: pointer;
+    }
+    .action>li:hover {
+        background-color: #40B1ED;
+    }
+    .template {
+        display: none;
         position: absolute;
         border: 1px solid black;
         background-color: white;
+    }
+    #login {
+        padding: 15px;
+    }
+    #login>button {
+        float: right;
     }
     </style>
 </head>
 <body oncontextmenu="return false;" style="margin:0">
     <canvas width=800 height=600></canvas>
-    <template id='unit'>
+    <div class='template' id='unit'>
         <ul class='action'>
             <li>move</li>
             <li>attack</li>
             <li>fortify</li>
         </ul>
-    </template>
-    <template id='city'>
+    </div>
+    <div class='template' id='city'>
         <ul class='action'>
             <li>upgrade palace</li>
             <li>upgrade quarry</li>
@@ -25,15 +47,19 @@
             <li>upgrade mill</li>
             <li>produce unit</li>
         </ul>
-    </template>
-    <template id='produce'>
+    </div>
+    <div class='template' id='produce'>
         <ul class='action'>
             <li>scout</li>
             <li>soldier</li>
             <li>mounted soldier</li>
             <li>settler</li>
         </ul>
-    </template>
+    </div> 
+    <div class='template modal' id='login'>
+        Name: <input type='text' id='name'></input><br/>
+        <button id='loginbutton'>connect!</button>
+    </div>
 </body>
 <script src='js/client.min.js'></script>
 
