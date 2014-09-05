@@ -81,7 +81,7 @@ var Menu = function() {
             if(id) {
                 menu[id].style.display = 'none';
             } else {
-                var e = menu[id];
+                var e = document.querySelectorAll('.template');
                 for(var i = 0; i < e.length; i++) {
                     elements[i].style.display = 'none';
                 }
@@ -90,7 +90,7 @@ var Menu = function() {
     };
     for(var i = 0; i < elements.length; i++) {
         var id = elements[i].getAttribute('id');
-        menu[id] = elements[i];//document.importNode(elements[i].content, true);
+        menu[id] = elements[i];
         menu[id].style.display = 'none';
         document.body.appendChild(menu[id]);
     }
@@ -229,6 +229,7 @@ var World = function(map) {
     var selected = null;
     var events = {};
     var world = {};
+    var menu = new Menu();
     fog = [];
     entities = [];
     var size = {
@@ -327,6 +328,9 @@ var World = function(map) {
                 p = entities[p.x][p.y];
             }
             ev('action', p);
+        }
+        if(e.which === 1) {
+            menu.close();
         }
         drag = null;
     });
@@ -634,5 +638,19 @@ generateTransition('#C91B0E', 'grey', 'black', 'fireInverse');
 generateTransition('green', 'grey', '#0B5C16', 'rock');
 generateTransition('grey', 'green', '#0B5C16', 'rockInverse');
 //generateTransition('grey', '#C91B0E', 'black', 'rockInverse');
-var game = new Game();
-game.loop();
+//
+(function() {
+    var menu = new Menu();
+    menu.open('login', { x: 0, y: 0});
+    if(localStorage.name) {
+        document.querySelector('#login>input').value = localStorage.name;
+    }
+    document.querySelector('#login>button').addEventListener('click', function() {
+        var name = document.querySelector('#login>input').value;
+        console.log(name);
+        var game = new Game(name);
+        game.loop();
+        menu.close();
+        localStorage.name = name;
+    });
+}());
