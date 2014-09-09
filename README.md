@@ -3,5 +3,5 @@ DustAndRain
 
 entry to js13kgames 2014
 
-zipped size: **4.87kb**  
-last build:  **Thu Sep 04 2014 22:10:23 GMT-0400 (EDT)**
+zipped size: **5.22kb**  
+last build:  **Mon Sep 08 2014 23:01:19 GMT-0400 (EDT)**

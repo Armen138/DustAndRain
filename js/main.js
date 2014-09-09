@@ -16,9 +16,11 @@ var viewPort = {
 
 canvas.width = viewPort.width;
 canvas.height = viewPort.height;
+var icons = {};
 var zoom = 1;
 var fog;
 var entities;
+var mouse = { x: 0, y: 0 };
 var keys = {
     up: 38,
     down: 40,
@@ -59,6 +61,7 @@ var MessageBox = function() {
             msg: msg,
             type: type || 'default'
         });
+        console.log(messages);
         if(messages.length > 10) {
             messages.shift();
         }
@@ -74,8 +77,8 @@ var Menu = function() {
             var p = screenPosition(tile);
             var m = menu[id];
             m.style.display = 'block';
-            m.style.left = p.x + tileSize / 2 * zoom;
-            m.style.top = p.y + tileSize / 2 * zoom;
+            m.style.left = (p.x + tileSize / 2 * zoom) + 'px';
+            m.style.top = (p.y + tileSize / 2 * zoom) + 'px';
         },
         close: function(id) {
             if(id) {
@@ -118,6 +121,22 @@ var mountain = function(c) {
     c.strokeStyle = 'black';
     c.fill();
     c.stroke();
+};
+var generateIcons = function() {
+   var cnvs = function(icon) {
+       var c = document.createElement('canvas');
+       c.width = tileSize;
+       c.height = tileSize;
+       var ctx = c.getContext('2d');
+       ctx.textBaseline = 'hanging';
+       ctx.font = tileSize + 'px sans-serif';
+       ctx.fillStyle = 'black';
+       ctx.fillText(icon, 4, 8);
+       return c;
+   };
+
+   icons.settler = cnvs('\u2657');
+   icons.city = cnvs('\u2656');
 };
 var generateTransition = function(from, to, intermediate, type) {
     var tc = document.createElement('canvas');
@@ -175,9 +194,14 @@ var generateTransition = function(from, to, intermediate, type) {
     //document.body.appendChild(tc);
 };
 
-var Unit = function(p/*, type*/) {
+var Unit = function(p, type) {
     var unit = {};
     var fx, fy;
+    type = type || 'settler';
+    //var icon = '\u2657';
+    var tooltip = type;
+    ctx.font = '20px sans-serif';
+    var tipWidth = ctx.measureText(tooltip).width;
     var fogBox = function(r, v) {
         for(fx = p.x - r; fx <= p.x + r; fx++) {
             for(fy = p.y - r; fy <= p.y + r; fy++) {
@@ -187,11 +211,39 @@ var Unit = function(p/*, type*/) {
             }
         }
     };
+
+    unit.inside = function(pos) {
+        return (pos.x === p.x && pos.y === p.y);
+        //var x = (p.x) * tileSize * zoom,
+            //y = (p.y) * tileSize * zoom;
+        //return (pos.x > x &&
+                //pos.x < x + tileSize * zoom &&
+                //pos.y > y &&
+                //pos.y < y + tileSize * zoom);
+    };
+
     fogBox(2, 1);
     fogBox(1, 2);
     unit.draw = function() {
+        var x = (p.x - offset.x) * tileSize * zoom,
+            y = (p.y - offset.y) * tileSize * zoom;
         ctx.fillStyle = 'yellow';
-        ctx.fillRect((p.x - offset.x) * tileSize * zoom, (p.y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
+        ctx.fillRect(x, y, tileSize * zoom, tileSize * zoom);
+        ctx.drawImage(icons[type], 0, 0, tileSize, tileSize, x, y, tileSize * zoom, tileSize * zoom);
+        //ctx.fillStyle = 'black';
+        //ctx.font = '48px sans-serif';
+        //ctx.textBaseline = 'hanging';
+        //ctx.fillText(icon, x + 8, y + 8);
+        if(unit.drawTooltip) {
+            ctx.font = '20px sans-serif';
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'black';
+            ctx.fillRect(x + tileSize * zoom, y,  tipWidth + 8, 25);
+            ctx.strokeRect(x + tileSize * zoom, y,  tipWidth + 8, 25);
+            ctx.textBaseline = 'hanging';
+            ctx.fillStyle = 'black';
+            ctx.fillText(tooltip, x + 4 + tileSize * zoom, y + 4);
+        }
     };
     return unit;
 };
@@ -202,6 +254,7 @@ var Player = function() {
     var unit = new Unit({x: x, y: y}, type);
     var player = {};
     player.draw = function() {
+        unit.drawTooltip = unit.inside(mouse);
         unit.draw();
     };
     player.start = {
@@ -212,18 +265,16 @@ var Player = function() {
 };
 
     var screenPosition = function(ip) {
-        var p = {
+        return {
             x: (ip.x - offset.x) * tileSize * zoom,
             y: (ip.y - offset.y) * tileSize * zoom
         };
-        return p;
     };
     var tilePosition = function(ip) {
-        var p = {
+        return {
             x: (ip.x / (tileSize * zoom) | 0) + offset.x,
             y: (ip.y / (tileSize * zoom) | 0) + offset.y
         };
-        return p;
     };
 var World = function(map) {
     var selected = null;
@@ -290,6 +341,7 @@ var World = function(map) {
     });
 
     canvas.addEventListener('mousemove', function(e) {
+        mouse = tilePosition({ x: e.clientX, y: e.clientY });
         if(!drag) {
             return;
         }
@@ -549,7 +601,7 @@ var World = function(map) {
     return world;
 };
 
-var Game = function() {
+var Game = function(name) {
     var messageBox = new MessageBox();
     var server = new Server();
     var menu = new Menu();
@@ -559,6 +611,7 @@ var Game = function() {
         }
     };
 
+    messageBox.append(name + " joined game.");
     server.on('map', function(data) {
 
         var world = new World(data);
@@ -639,6 +692,8 @@ generateTransition('green', 'grey', '#0B5C16', 'rock');
 generateTransition('grey', 'green', '#0B5C16', 'rockInverse');
 //generateTransition('grey', '#C91B0E', 'black', 'rockInverse');
 //
+generateIcons();
+
 (function() {
     var menu = new Menu();
     menu.open('login', { x: 0, y: 0});

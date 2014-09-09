@@ -1,5 +1,13 @@
+<!doctype html>
+<html>
 <head>
+    <meta charset="UTF-8"> 
     <style>
+    body { 
+        position: relative;
+        margin: 0;
+        overflow: hidden;
+    }
     .action {
         font-family: Arial;
         font-size: 14px;
@@ -31,7 +39,7 @@
     }
     </style>
 </head>
-<body oncontextmenu="return false;" style="margin:0">
+<body oncontextmenu="return false;">
     <canvas width=800 height=600></canvas>
     <div class='template' id='unit'>
         <ul class='action'>
@@ -62,6 +70,6 @@
         Name: <input type='text' placeholder='your name' id='name'></input><br/>
         <button id='loginbutton'>connect!</button>
     </div>
+    <script src='js/client.min.js'></script>
 </body>
-<script src='js/client.min.js'></script>
-
+</html>
