@@ -4,7 +4,7 @@
  */
 
 /*jshint browser:true,bitwise:false,node:true */
-/*global Simplex,console*/
+/*global Player,Simplex,console*/
 
 'use strict';
 var canvas = document.getElementsByTagName('canvas')[0];
@@ -189,6 +189,9 @@ var generateIcons = function() {
 
    icons.settler = cnvs('\u2657');
    icons.city = cnvs('\u2656');
+   icons.knight = cnvs('\u2658');
+   icons.scout = cnvs('\u2659');
+   icons.chief = cnvs('\u2654');
 };
 var generateTransition = function(from, to, intermediate, type) {
     var tc = document.createElement('canvas');
@@ -245,129 +248,18 @@ var generateTransition = function(from, to, intermediate, type) {
     }
     //document.body.appendChild(tc);
 };
-var types = {
-    settler: {
-        moves: 4,
-        context: {
-            settle: function() { console.log('settle settlement'); }
-        }
-    }
+var screenPosition = function(ip) {
+    return {
+        x: (ip.x - offset.x) * tileSize * zoom,
+        y: (ip.y - offset.y) * tileSize * zoom
+    };
 };
-var Unit = function(p, type) {
-    var unit = {};
-    var fx, fy;
-    type = type || 'settler';
-    unit.type = type;
-    //var icon = '\u2657';
-    var tooltip = type;
-    ctx.font = '20px sans-serif';
-    var tipWidth = ctx.measureText(tooltip).width;
-    var fogBox = function(r, v) {
-        for(fx = p.x - r; fx <= p.x + r; fx++) {
-            for(fy = p.y - r; fy <= p.y + r; fy++) {
-                if(fog[fx][fy] < v) {
-                    fog[fx][fy] = v;
-                }
-            }
-        }
+var tilePosition = function(ip) {
+    return {
+        x: (ip.x / (tileSize * zoom) | 0) + offset.x,
+        y: (ip.y / (tileSize * zoom) | 0) + offset.y
     };
-
-    unit.inside = function(pos) {
-        return (pos.x === p.x && pos.y === p.y);
-        //var x = (p.x) * tileSize * zoom,
-            //y = (p.y) * tileSize * zoom;
-        //return (pos.x > x &&
-                //pos.x < x + tileSize * zoom &&
-                //pos.y > y &&
-                //pos.y < y + tileSize * zoom);
-    };
-
-    fogBox(2, 1);
-    fogBox(1, 2);
-
-    unit.draw = function() {
-        var x = (p.x - offset.x) * tileSize * zoom,
-            y = (p.y - offset.y) * tileSize * zoom;
-        ctx.fillStyle = 'yellow';
-        ctx.fillRect(x, y, tileSize * zoom, tileSize * zoom);
-        ctx.drawImage(icons[type], 0, 0, tileSize, tileSize, x, y, tileSize * zoom, tileSize * zoom);
-        //ctx.fillStyle = 'black';
-        //ctx.font = '48px sans-serif';
-        //ctx.textBaseline = 'hanging';
-        //ctx.fillText(icon, x + 8, y + 8);
-        if(unit.drawTooltip) {
-            ctx.font = '20px sans-serif';
-            ctx.fillStyle = 'white';
-            ctx.strokeStyle = 'black';
-            ctx.fillRect(x + tileSize * zoom, y,  tipWidth + 8, 25);
-            ctx.strokeRect(x + tileSize * zoom, y,  tipWidth + 8, 25);
-            ctx.textBaseline = 'hanging';
-            ctx.fillStyle = 'black';
-            ctx.fillText(tooltip, x + 4 + tileSize * zoom, y + 4);
-        }
-    };
-    unit.action = function(action, position) {
-        console.log('requested ' + action + ' on unit.');
-    };
-
-    for(var prop in types[type]) {
-        unit[prop] = types[type][prop];
-    }
-    unit.context.move = function() {
-        selection.defaultAction = 'move';
-    };
-    unit.context.fortify = function() {};
-    unit.context.attack = function() {
-        selection.defaultAction = 'attack';
-    };
-    return unit;
 };
-var Player = function() {
-    var x = Math.random() * 100 | 0;
-    var y = Math.random() * 100 | 0;
-    var type = 'settler';
-    var units = [];
-    //var unit = new Unit({x: x, y: y}, type);
-    units.push(new Unit({x: x, y: y}, type));
-    var player = {};
-    player.draw = function() {
-        for(var i = 0; i < units.length; i++) {
-            units[i].drawTooltip = units[i].inside(mouse);
-            units[i].draw();
-        }
-    };
-    player.unitAt = function(p) {
-        for(var i = 0; i < units.length; i++) {
-            if(units[i].inside(p)) {
-                return units[i];
-            }
-            //if(units[i].position.x === p.x &&
-                //units[i].position.y === p.y) {
-                //return units[i];
-            //}
-        }
-        return null;
-    };
-    player.units = units;
-    player.start = {
-        x: x,
-        y: y
-    };
-    return player;
-};
-
-    var screenPosition = function(ip) {
-        return {
-            x: (ip.x - offset.x) * tileSize * zoom,
-            y: (ip.y - offset.y) * tileSize * zoom
-        };
-    };
-    var tilePosition = function(ip) {
-        return {
-            x: (ip.x / (tileSize * zoom) | 0) + offset.x,
-            y: (ip.y / (tileSize * zoom) | 0) + offset.y
-        };
-    };
 var World = function(map) {
     var selected = null;
     var events = {};
@@ -394,7 +286,7 @@ var World = function(map) {
         collisionMap[x] = [];
         for(var y = 0; y < size.height; y++) {
             fog[x][y] = 0;
-            collisionMap[x][y] = (map[x][y] === 0 || map[x][y] === 3) ? 1 : 0;
+            collisionMap[x][y] = (map[x][y] === 1 || map[x][y] === 2) ? 0 : 1;
         }
     }
     var drag = null;
@@ -716,6 +608,9 @@ var World = function(map) {
         selection.tile = p;
         selection.unit = world.unitAt(p);
     };
+    world.collides = function(x, y) {
+        return collisionMap[x][y] === 1;
+    };
     return world;
 };
 
@@ -734,7 +629,7 @@ var Game = function(name) {
     //server.on('map', function(data) {
 
         var world = new World(data);
-        var player = new Player();
+        var player = new Player(world);
         world.addPlayer(player);
         world.on('action', function(p) {
             world.select(p);
@@ -745,7 +640,18 @@ var Game = function(name) {
             if(selection.unit && selection.defaultAction) {
                 selection.unit.action(selection.defaultAction, p);
             } else {
-                world.select(p);
+                var at = world.unitAt(p);
+                if(selection.unit && at &&
+                    selection.unit.owner !== at.owner &&
+                    selection.unit.context.attack) {
+                    selection.unit.action('attack', p);
+                } else if (selection.unit && !at &&
+                            !world.collides(p.x, p.y) &&
+                            selection.unit.context.move) {
+                    select.unit.action('move', p);
+                } else {
+                    world.select(p);
+                }
             }
         });
         world.center(player.start.x, player.start.y);

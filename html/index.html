@@ -51,7 +51,7 @@
         float: right;
         margin-right: 10px;
     }
-    #resources>span {
+    #resources>span, #income>span {
         color: yellow;
     }
     </style>
@@ -70,12 +70,15 @@
     <canvas width=800 height=600></canvas>
     <div class='template' id='unit'>
         <ul class='action'>
-            <li>move</li>
-            <li>attack</li>
-            <li>fortify</li>
         </ul>
     </div>
     <div class='template' id='city'>
+        <div id='income'>
+            W:<span id='city-water'>0</span>|
+            R:<span id='city-rock'>0</span>|
+            F:<span id='city-fire'>0</span>|
+            A:<span id='city-air'>0</span>
+        </div>
         <ul class='action'>
             <li>upgrade palace</li>
             <li>upgrade quarry</li>
