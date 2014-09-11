@@ -14,12 +14,18 @@ var viewPort = {
     height: window.innerHeight
 };
 
+var simplex = new Simplex();
+
 canvas.width = viewPort.width;
 canvas.height = viewPort.height;
+var turn = {
+    count: 0
+};
 var icons = {};
 var zoom = 1;
 var fog;
 var entities;
+var collisionMap;
 var mouse = { x: 0, y: 0 };
 var keys = {
     up: 38,
@@ -37,6 +43,36 @@ var tilesPerScreen = {
     y: viewPort.height / tileSize | 0 + 1
 };
 var ctx = canvas.getContext('2d');
+
+var selection = {
+    tile: null,
+    unit: null
+};
+var GameMap = function() {
+
+    var size = {
+        width: 100,
+        height: 100
+    };
+
+    var mapTile = function(x, y) {
+        var res = 25;
+        var levels = 4;
+        return parseInt((simplex.noise(x / res, y / res) + 1) / 2 * levels, 10);
+    };
+
+    var generateMap = function() {
+        var map = [];
+        for(var x = 0; x < size.width; x++) {
+            map[x] = [];
+            for(var y = 0; y < size.height; y++) {
+                map[x][y] = mapTile(x / 2 | 0, y / 2 | 0);
+            }
+        }
+        return map;
+    };
+    return generateMap();
+};
 
 var MessageBox = function() {
     var messages = [];
@@ -73,12 +109,28 @@ var MessageBox = function() {
 var Menu = function() {
     var elements = document.querySelectorAll('.template');
     var menu = {
-        open: function(id, tile) {
+        open: function(id, tile, unit) {
             var p = screenPosition(tile);
             var m = menu[id];
             m.style.display = 'block';
             m.style.left = (p.x + tileSize / 2 * zoom) + 'px';
             m.style.top = (p.y + tileSize / 2 * zoom) + 'px';
+            var action = m.querySelector('ul');
+            if(unit) {
+                action.innerHTML = "";
+                var item = function(name, cb) {
+                    var i =  document.createElement('li');
+                    i.innerHTML =  name;
+                    i.addEventListener('click', function() {
+                        cb();
+                        menu.close();
+                    });
+                    return i;
+                };
+                for(var i in unit.context) {
+                    action.appendChild(item(i, unit.context[i]));
+                }
+            }
         },
         close: function(id) {
             if(id) {
@@ -193,11 +245,19 @@ var generateTransition = function(from, to, intermediate, type) {
     }
     //document.body.appendChild(tc);
 };
-
+var types = {
+    settler: {
+        moves: 4,
+        context: {
+            settle: function() { console.log('settle settlement'); }
+        }
+    }
+};
 var Unit = function(p, type) {
     var unit = {};
     var fx, fy;
     type = type || 'settler';
+    unit.type = type;
     //var icon = '\u2657';
     var tooltip = type;
     ctx.font = '20px sans-serif';
@@ -224,6 +284,7 @@ var Unit = function(p, type) {
 
     fogBox(2, 1);
     fogBox(1, 2);
+
     unit.draw = function() {
         var x = (p.x - offset.x) * tileSize * zoom,
             y = (p.y - offset.y) * tileSize * zoom;
@@ -245,18 +306,49 @@ var Unit = function(p, type) {
             ctx.fillText(tooltip, x + 4 + tileSize * zoom, y + 4);
         }
     };
+    unit.action = function(action, position) {
+        console.log('requested ' + action + ' on unit.');
+    };
+
+    for(var prop in types[type]) {
+        unit[prop] = types[type][prop];
+    }
+    unit.context.move = function() {
+        selection.defaultAction = 'move';
+    };
+    unit.context.fortify = function() {};
+    unit.context.attack = function() {
+        selection.defaultAction = 'attack';
+    };
     return unit;
 };
 var Player = function() {
     var x = Math.random() * 100 | 0;
     var y = Math.random() * 100 | 0;
     var type = 'settler';
-    var unit = new Unit({x: x, y: y}, type);
+    var units = [];
+    //var unit = new Unit({x: x, y: y}, type);
+    units.push(new Unit({x: x, y: y}, type));
     var player = {};
     player.draw = function() {
-        unit.drawTooltip = unit.inside(mouse);
-        unit.draw();
+        for(var i = 0; i < units.length; i++) {
+            units[i].drawTooltip = units[i].inside(mouse);
+            units[i].draw();
+        }
     };
+    player.unitAt = function(p) {
+        for(var i = 0; i < units.length; i++) {
+            if(units[i].inside(p)) {
+                return units[i];
+            }
+            //if(units[i].position.x === p.x &&
+                //units[i].position.y === p.y) {
+                //return units[i];
+            //}
+        }
+        return null;
+    };
+    player.units = units;
     player.start = {
         x: x,
         y: y
@@ -280,9 +372,11 @@ var World = function(map) {
     var selected = null;
     var events = {};
     var world = {};
+    var players = [];
     var menu = new Menu();
     fog = [];
     entities = [];
+    collisionMap = [];
     var size = {
         width: 100,
         height: 100
@@ -297,8 +391,10 @@ var World = function(map) {
     for(var x = 0; x < size.width; x++) {
         fog[x] = [];
         entities[x] = [];
+        collisionMap[x] = [];
         for(var y = 0; y < size.height; y++) {
             fog[x][y] = 0;
+            collisionMap[x][y] = (map[x][y] === 0 || map[x][y] === 3) ? 1 : 0;
         }
     }
     var drag = null;
@@ -374,8 +470,8 @@ var World = function(map) {
                 Y: (drag.Y - e.clientY) / (tileSize * zoom) | 0
             };
         }
+        var p = tilePosition({ x: e.clientX, y: e.clientY });
         if(e.which === 3 && (!drag || (tileDif.X === 0 && tileDif.Y === 0))) {
-            var p = tilePosition({ x: e.clientX, y: e.clientY });
             if(entities[p.x][p.y]) {
                 p = entities[p.x][p.y];
             }
@@ -383,6 +479,7 @@ var World = function(map) {
         }
         if(e.which === 1) {
             menu.close();
+            ev('default-action', p);
         }
         drag = null;
     });
@@ -560,6 +657,9 @@ var World = function(map) {
         }
         return tiles[type].c;
     };
+    world.addPlayer = function(player) {
+        players.push(player);
+    };
     world.draw = function() {
         offset.x = Math.min(Math.max(offset.x, 0), size.width - tilesPerScreen.x);
         offset.y = Math.min(Math.max(offset.y, 0), size.height - tilesPerScreen.y);
@@ -575,10 +675,15 @@ var World = function(map) {
                 ctx.fillRect((x - offset.x) * tileSize * zoom, (y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
             }
         }
-        if(selected) {
-            ctx.strokeStyle = 'yellow';
-            ctx.strokeRect((selected.x - offset.x) * tileSize * zoom,
-                            (selected.y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
+        for(var i = 0; i < players.length; i++) {
+            players[i].draw();
+        }
+        if(selection.tile) {
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 4;
+            ctx.strokeRect((selection.tile.x - offset.x) * tileSize * zoom,
+                            (selection.tile.y - offset.y) * tileSize * zoom, tileSize * zoom, tileSize * zoom);
+            ctx.lineWidth = 1;
         }
     };
     world.center = function(x, y) {
@@ -595,15 +700,28 @@ var World = function(map) {
         }
         events[ev].push(cb);
     };
+
+    world.unitAt = function(p) {
+        for(var i = 0; i < players.length; i++) {
+            var u = players[i].unitAt(p);
+            if(u) {
+                return u;
+            }
+        }
+        return null;
+    };
+
     world.select = function(p) {
         selected = p;
+        selection.tile = p;
+        selection.unit = world.unitAt(p);
     };
     return world;
 };
 
 var Game = function(name) {
     var messageBox = new MessageBox();
-    var server = new Server();
+    //var server = new Server();
     var menu = new Menu();
     var game = {
         loop: function() {
@@ -612,20 +730,30 @@ var Game = function(name) {
     };
 
     messageBox.append(name + " joined game.");
-    server.on('map', function(data) {
+    var data = new GameMap();
+    //server.on('map', function(data) {
 
         var world = new World(data);
         var player = new Player();
+        world.addPlayer(player);
         world.on('action', function(p) {
             world.select(p);
-            menu.open('unit', p);
+            var u = world.unitAt(p);
+            menu.open('unit', p, u);
+        });
+        world.on('default-action', function(p) {
+            if(selection.unit && selection.defaultAction) {
+                selection.unit.action(selection.defaultAction, p);
+            } else {
+                world.select(p);
+            }
         });
         world.center(player.start.x, player.start.y);
-        server.on('msg', function(data) {
-            console.log('message from server');
-            console.log(data);
-            messageBox.append(data.data);
-        });
+        //server.on('msg', function(data) {
+            //console.log('message from server');
+            //console.log(data);
+            //messageBox.append(data.data);
+        //});
 
         var draw = function() {
             canvas.width = canvas.width;
@@ -634,52 +762,52 @@ var Game = function(name) {
         game.loop = function() {
             draw();
             world.draw();
-            player.draw();
+            //player.draw();
             messageBox.draw();
             window.requestAnimationFrame(game.loop);
         };
-    });
-    server.send('map');
+    //});
+    //server.send('map');
     menu.open('login', { x: 0, y: 0});
     return game;
 };
 
-var Server = function() {
-    var server = {},
-        events = {},
-        ev = function(e, data) {
-            if(events[e]) {
-                for(var i = 0; i < events[e].length; i++) {
-                    events[e][i](data);
-                }
-            }
-        },
-        serverWorker = new Worker('server/server.min.js');
-    server.send = function(type, message) {
-        serverWorker.postMessage({
-            type: type || 'info',
-            data: message
-        });
-    };
-    server.on = function(e, cb) {
-        if(!events[e]) {
-            events[e] = [];
-        }
-        events[e].push(cb);
-    };
+//var Server = function() {
+    //var server = {},
+        //events = {},
+        //ev = function(e, data) {
+            //if(events[e]) {
+                //for(var i = 0; i < events[e].length; i++) {
+                    //events[e][i](data);
+                //}
+            //}
+        //},
+        //serverWorker = new Worker('server/server.min.js');
+    //server.send = function(type, message) {
+        //serverWorker.postMessage({
+            //type: type || 'info',
+            //data: message
+        //});
+    //};
+    //server.on = function(e, cb) {
+        //if(!events[e]) {
+            //events[e] = [];
+        //}
+        //events[e].push(cb);
+    //};
 
-    serverWorker.onmessage = function(data) {
-        ev('msg', data.data);
-        if(data.data.type) {
-            ev(data.data.type, data.data.data);
-        }
-    };
-    serverWorker.postMessage({
-        type: 'info',
-        data: 'connection ready'
-    });
-    return server;
-};
+    //serverWorker.onmessage = function(data) {
+        //ev('msg', data.data);
+        //if(data.data.type) {
+            //ev(data.data.type, data.data.data);
+        //}
+    //};
+    //serverWorker.postMessage({
+        //type: 'info',
+        //data: 'connection ready'
+    //});
+    //return server;
+//};
 
 generateTransition('green', 'blue', 'brown', 'water');
 generateTransition('blue', 'green', 'brown', 'waterInverse');
@@ -707,5 +835,6 @@ generateIcons();
         game.loop();
         menu.close();
         localStorage.name = name;
+        document.querySelector('#topbar').style.display = 'block';
     });
 }());

@@ -37,9 +37,36 @@
     #login>button {
         float: right;
     }
+    #topbar {
+        width: 100%;
+        height: 32px;
+        top: 0;
+        left: 0;
+        position: absolute;
+        color: white;
+        font-family: Arial, sans-serif;
+        display: none;
+    }   
+    #resources {
+        float: right;
+        margin-right: 10px;
+    }
+    #resources>span {
+        color: yellow;
+    }
     </style>
 </head>
 <body oncontextmenu="return false;">
+    <div id='topbar'>
+        <button>next unit(1)</button>
+        <button>end turn</button>
+        <div id='resources'>
+            water <span id='water'>0</span> | 
+            rock <span id='rock'>0</span> |
+            fire <span id='fire'>0</span> |
+            air <span id='air'>0</span>
+        </div>
+    </div>
     <canvas width=800 height=600></canvas>
     <div class='template' id='unit'>
         <ul class='action'>
@@ -68,7 +95,7 @@
     </div> 
     <div class='template modal' id='login'>
         Name: <input type='text' placeholder='your name' id='name'></input><br/>
-        <button id='loginbutton'>connect!</button>
+        <button id='loginbutton'>play!</button>
     </div>
     <script src='js/client.min.js'></script>
 </body>

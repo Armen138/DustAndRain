@@ -9,7 +9,7 @@ var gutil = require('gulp-util');
 
 var paths = {
     archive: 'build/**/*',
-    client: 'js/**/*.js',
+    client: ['js/asatar.js', 'js/simplex.js', 'js/main.js'],
     server: ['server/simplex.js', 'server/server.js'],
     html: 'html/*.html'
 };
@@ -43,7 +43,7 @@ gulp.task('server', function() {
         .pipe(gulp.dest('build/server'));
 });
 
-gulp.task('build', ['html', 'client', 'server']);
+gulp.task('build', ['html', 'client']);
 
 gulp.task('package', ['build'], function() {
     return gulp.src(paths.archive)

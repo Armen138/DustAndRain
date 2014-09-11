@@ -1,4 +1,4 @@
-console.log('server started');
+//console.log('server started');
 var simplex = new Simplex();
 var playerId = 0;
 var players = {};
