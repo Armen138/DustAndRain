@@ -9,7 +9,7 @@ var gutil = require('gulp-util');
 
 var paths = {
     archive: 'build/**/*',
-    client: ['js/asatar.js', 'js/simplex.js', 'js/unit.js', 'js/player.js', 'js/main.js'],
+    client: ['js/astar.js', 'js/simplex.js', 'js/unit.js', 'js/player.js', 'js/main.js'],
     server: ['server/simplex.js', 'server/server.js'],
     html: 'html/*.html'
 };

@@ -1,10 +1,16 @@
 
-var Unit = function(p, type, owner) {
+var Unit = function(p, type, owner, world) {
     var types = {
         settler: {
             moves: 4,
             context: {
-                settle: function() { console.log('settle settlement'); },
+                settle: function() {
+                    console.log('settle settlement');
+                    queue = [];
+                    queue.push({
+                        action: 'settle'
+                    });
+                },
                 move: function() { selection.defaultAction = 'move'; }
             }
         },
@@ -31,16 +37,20 @@ var Unit = function(p, type, owner) {
             forge: 1,
             mill: 1,
             context: {
-                '⇮ palace': function() { queue.add({ action: 'palace', turns: unit.palace * 5 }); },
-                '⇮ quarry': function() { queue.add({ action: 'quarry', turns: unit.quarry * 2 }); },
-                '⇮ aquaduct': function() { queue.add({ action: 'aquaduct', turns: unit.aquaduct * 2 }); },
-                '⇮ forge': function() { queue.add({ action: 'forge', turns: unit.forge * 2 }); },
-                '⇮ mill': function() { queue.add({ action: 'mill', turns: unit.mill * 2 }); },
+                '⇮ palace': function() { queue.push({ action: 'palace', turns: unit.palace * 5 }); },
+                '⇮ quarry': function() { queue.push({ action: 'quarry', turns: unit.quarry * 2 }); },
+                '⇮ aquaduct': function() { queue.push({ action: 'aquaduct', turns: unit.aquaduct * 2 }); },
+                '⇮ forge': function() { queue.push({ action: 'forge', turns: unit.forge * 2 }); },
+                '⇮ mill': function() { queue.push({ action: 'mill', turns: unit.mill * 2 }); },
+                '♘ knight': function() { queue.push({ action: 'knight', turns: unit.mill * 2 }); },
+                '♔ chief': function() { queue.push({ action: 'chief', turns: unit.mill * 2 }); },
+                '♗ settler': function() { queue.push({ action: 'settler', turns: unit.mill * 2 }); },
             }
         }
     };
     var unit = {
-        owner: owner
+        owner: owner,
+        position: p
     };
     var queue = [];
     var fx, fy;
@@ -83,6 +93,20 @@ var Unit = function(p, type, owner) {
         //ctx.font = '48px sans-serif';
         //ctx.textBaseline = 'hanging';
         //ctx.fillText(icon, x + 8, y + 8);
+        ctx.fillStyle = 'red';
+        if(queue.length > 0) {
+            for(var i = 0; i < queue.length; i++) {
+                if(queue[i].action === 'move') {
+                    var mx = (queue[i].position.x - offset.x) * tileSize * zoom,
+                        my = (queue[i].position.y - offset.y) * tileSize * zoom;
+                    ctx.fillRect(mx + 10 * zoom,
+                            my + 10 * zoom,
+                            (tileSize - 20) * zoom,
+                            (tileSize - 20) * zoom);
+                }
+            }
+        }
+
         if(unit.drawTooltip) {
             ctx.font = '20px sans-serif';
             ctx.fillStyle = 'white';
@@ -96,8 +120,44 @@ var Unit = function(p, type, owner) {
     };
     unit.action = function(action, position) {
         console.log('requested ' + action + ' on unit.');
+        if(action === 'move') {
+            queue = [];
+            var path = world.path(p, position);
+            path.shift(); //first position is the unit
+            for(var i = 0; i < path.length; i++) {
+                queue.push({
+                    action: 'move',
+                    position: { x: path[i].X, y: path[i].Y }
+                });
+            }
+        }
     };
 
+    unit.runQueue = function() {
+        console.log('run unit queue: ' + unit.moves);
+        for(var i = 0; i < unit.moves; i++) {
+            if(queue.length > 0) {
+                if(queue[0].action === 'move') {
+                    p = queue[0].position;
+                    fogBox(2, 1);
+                    fogBox(1, 2);
+                }
+                if(queue[0].action === 'settle') {
+                    unit.type = tooltip = type = 'city';
+                    for(var prop in types[type]) {
+                        unit[prop] = types[type][prop];
+                    }
+                    unit.income = {
+                        water: 1,
+                        fire: 1,
+                        rock: 1,
+                        air: 1
+                    };
+                }
+                queue.shift();
+            }
+        }
+    };
     for(var prop in types[type]) {
         unit[prop] = types[type][prop];
     }

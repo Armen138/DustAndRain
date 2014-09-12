@@ -4,7 +4,7 @@
  */
 
 /*jshint browser:true,bitwise:false,node:true */
-/*global Player,Simplex,console*/
+/*global Player,Simplex,A,console*/
 
 'use strict';
 var canvas = document.getElementsByTagName('canvas')[0];
@@ -611,6 +611,16 @@ var World = function(map) {
     world.collides = function(x, y) {
         return collisionMap[x][y] === 1;
     };
+    world.path = function(p1, p2) {
+        return A.findPath(collisionMap,
+                { X: p1.x, Y: p1.y },
+                { X: p2.x, Y: p2.y });
+    };
+    world.endTurn = function() {
+        for(var i = 0; i < players.length; i++) {
+            players[i].endTurn();
+        }
+    };
     return world;
 };
 
@@ -625,6 +635,7 @@ var Game = function(name) {
     };
 
     messageBox.append(name + " joined game.");
+    var turnCount = 0;
     var data = new GameMap();
     //server.on('map', function(data) {
 
@@ -648,7 +659,7 @@ var Game = function(name) {
                 } else if (selection.unit && !at &&
                             !world.collides(p.x, p.y) &&
                             selection.unit.context.move) {
-                    select.unit.action('move', p);
+                    selection.unit.action('move', p);
                 } else {
                     world.select(p);
                 }
@@ -675,46 +686,17 @@ var Game = function(name) {
     //});
     //server.send('map');
     menu.open('login', { x: 0, y: 0});
+    document.querySelector('#endturn').addEventListener('click', function() {
+        world.endTurn();
+        var resources = player.resources();
+        for(var r in resources) {
+            document.querySelector('#' + r).innerHTML = resources[r];
+        }
+        turnCount++;
+        document.querySelector('#endturn').innerHTML = 'end turn ' + turnCount;
+    });
     return game;
 };
-
-//var Server = function() {
-    //var server = {},
-        //events = {},
-        //ev = function(e, data) {
-            //if(events[e]) {
-                //for(var i = 0; i < events[e].length; i++) {
-                    //events[e][i](data);
-                //}
-            //}
-        //},
-        //serverWorker = new Worker('server/server.min.js');
-    //server.send = function(type, message) {
-        //serverWorker.postMessage({
-            //type: type || 'info',
-            //data: message
-        //});
-    //};
-    //server.on = function(e, cb) {
-        //if(!events[e]) {
-            //events[e] = [];
-        //}
-        //events[e].push(cb);
-    //};
-
-    //serverWorker.onmessage = function(data) {
-        //ev('msg', data.data);
-        //if(data.data.type) {
-            //ev(data.data.type, data.data.data);
-        //}
-    //};
-    //serverWorker.postMessage({
-        //type: 'info',
-        //data: 'connection ready'
-    //});
-    //return server;
-//};
-
 generateTransition('green', 'blue', 'brown', 'water');
 generateTransition('blue', 'green', 'brown', 'waterInverse');
 generateTransition('blue', 'green', 'brown', 'grass');

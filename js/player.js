@@ -1,7 +1,13 @@
-var Player = function() {
+var Player = function(world) {
     var x, y;
     var type = 'settler';
     var units = [];
+    var resources = {
+        water: 0,
+        rock: 0,
+        fire: 0,
+        air: 0
+    };
     var spawn = function() {
         x = Math.random() * 100 | 0;
         y = Math.random() * 100 | 0;
@@ -11,7 +17,7 @@ var Player = function() {
     };
     spawn();
     //var unit = new Unit({x: x, y: y}, type);
-    units.push(new Unit({x: x, y: y}, type, player));
+    units.push(new Unit({x: x, y: y}, type, player, world));
     var player = {};
     player.draw = function() {
         for(var i = 0; i < units.length; i++) {
@@ -36,9 +42,17 @@ var Player = function() {
         x: x,
         y: y
     };
-    player.playTurn = function() {
+    player.resources = function() {
+        return resources;
+    };
+    player.endTurn = function() {
         for(var i = 0; i < units.length; i++) {
             units[i].runQueue();
+            if(units[i].income) {
+                for(var r in units[i].income) {
+                    resources[r] += units[i].income[r];
+                }
+            }
         }
     };
     return player;
